@@ -32,7 +32,10 @@ class MockInterceptor extends Interceptor {
           json.decode(routeModule).forEach((dynamic map) {
             Map<String, dynamic> route = map as Map<String, dynamic>;
             String path = route['path'] as String;
-            _routes.putIfAbsent(path, () => route);
+            String method = route['method'] as String;
+            Map<String, dynamic> headers = route['headers'] as Map<String, dynamic>;
+            String? xtos = headers['X-TOS'];
+            _routes.putIfAbsent("$path$method$xtos", () => route);
           });
         });
         _futuresBundleLoaded.add(bundleLoaded);
@@ -46,26 +49,17 @@ class MockInterceptor extends Interceptor {
     await _futureManifestLoaded;
     await Future.wait(_futuresBundleLoaded);
 
-    Map<String, dynamic>? route = _routes[options.path];
-
+    String path = route['path'] as String;
+    String method = route['method'] as String;
+    Map<String, dynamic> headers = route['headers'] as Map<String, dynamic>;
+    String? xtos = headers['X-TOS'];
+    String key = "$path$method$xtos";
+    Map<String, dynamic>? route = _routes[key];
     if (route == null) {
       if(mockAllRequest) {
         handler.reject(DioException(
             requestOptions: options,
             error: "Can't find route setting: ${options.path}"));
-      } else {
-        handler.next(options);
-      }
-      return;
-    }
-
-    String method = route['method'] as String;
-    if (options.method != method) {
-      if(mockAllRequest) {
-        handler.reject(DioException(
-            requestOptions: options,
-            error:
-            "Can't find route setting: ${options.path}:${options.method}"));
       } else {
         handler.next(options);
       }
