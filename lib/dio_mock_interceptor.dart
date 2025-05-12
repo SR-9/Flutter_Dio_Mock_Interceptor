@@ -16,31 +16,31 @@ class MockInterceptor extends Interceptor {
   MockInterceptor({this.mockAllRequest = true}) {
     _futureManifestLoaded =
         rootBundle.loadString('AssetManifest.json').then((manifestContent) {
-      Map<String, dynamic> manifestMap = json.decode(manifestContent);
+          Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
-      List<String> mockResourcePaths = manifestMap.keys
-          .where((String key) => key.contains('mock/') && key.endsWith('.json'))
-          .toList();
-      if (mockResourcePaths.isEmpty) {
-        return;
-      }
-      for (var path in mockResourcePaths) {
-        Future bundleLoaded = rootBundle.load(path).then((ByteData data) {
-          String routeModule = utf8.decode(
-            data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-          );
-          json.decode(routeModule).forEach((dynamic map) {
-            Map<String, dynamic> route = map as Map<String, dynamic>;
-            String path = route['path'] as String;
-            String method = route['method'] as String;
-            Map<String, dynamic> headers = route['headers'] as Map<String, dynamic>;
-            String? xtos = headers['X-TOS'];
-            _routes.putIfAbsent("$path$method$xtos", () => route);
-          });
+          List<String> mockResourcePaths = manifestMap.keys
+              .where((String key) => key.contains('mock/') && key.endsWith('.json'))
+              .toList();
+          if (mockResourcePaths.isEmpty) {
+            return;
+          }
+          for (var path in mockResourcePaths) {
+            Future bundleLoaded = rootBundle.load(path).then((ByteData data) {
+              String routeModule = utf8.decode(
+                data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+              );
+              json.decode(routeModule).forEach((dynamic map) {
+                Map<String, dynamic> route = map as Map<String, dynamic>;
+                final path = route['path'] as String?;
+                final method = route['method'] as String?;
+                final headers = route['headers'] as Map<String, dynamic>?;
+                final xtos = headers?['X-TOS'];
+                _routes.putIfAbsent("$path$method$xtos", () => route);
+              });
+            });
+            _futuresBundleLoaded.add(bundleLoaded);
+          }
         });
-        _futuresBundleLoaded.add(bundleLoaded);
-      }
-    });
   }
 
   @override
@@ -49,11 +49,11 @@ class MockInterceptor extends Interceptor {
     await _futureManifestLoaded;
     await Future.wait(_futuresBundleLoaded);
 
-    String path = options.path as String;
-    String method = options.method as String;
-    Map<String, dynamic> headers = options.headers as Map<String, dynamic>;
-    String? xtos = headers['X-TOS'];
-    String key = "$path$method$xtos";
+    final path = options.path as String?;
+    final method = options.method as String?;
+    final headers = options.headers as Map<String, dynamic>?;
+    final xtos = headers?['X-TOS'];
+    final key = "$path$method$xtos";
 
     Map<String, dynamic>? route = _routes[key];
 
@@ -86,15 +86,15 @@ class MockInterceptor extends Interceptor {
 
     exContext.putIfAbsent(
         'req',
-        () => {
-              'headers': options.headers,
-              'queryParameters': options.queryParameters,
-              'baseUrl': options.baseUrl,
-              'method': options.method,
-              'path': options.path,
-              // 'uri': options.uri.,
-              // 'connectTimeout': options.connectTimeout
-            });
+            () => {
+          'headers': options.headers,
+          'queryParameters': options.queryParameters,
+          'baseUrl': options.baseUrl,
+          'method': options.method,
+          'path': options.path,
+          // 'uri': options.uri.,
+          // 'connectTimeout': options.connectTimeout
+        });
 
     if (options.data != null) {
       if (options.data is Map) {
