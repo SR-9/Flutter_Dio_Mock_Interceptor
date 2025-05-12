@@ -11,8 +11,9 @@ class MockInterceptor extends Interceptor {
   final Map<String, Map<String, dynamic>> _routes = {};
   final RegExp _regexpTemplate = RegExp(r'"\$\{template\}"');
   static const StandardExpressionSyntax _exSyntax = StandardExpressionSyntax();
+  final bool mockAllRequest;
 
-  MockInterceptor() {
+  MockInterceptor({this.mockAllRequest = true}) {
     _futureManifestLoaded =
         rootBundle.loadString('AssetManifest.json').then((manifestContent) {
       Map<String, dynamic> manifestMap = json.decode(manifestContent);
@@ -48,18 +49,26 @@ class MockInterceptor extends Interceptor {
     Map<String, dynamic>? route = _routes[options.path];
 
     if (route == null) {
-      handler.reject(DioException(
-          requestOptions: options,
-          error: "Can't find route setting: ${options.path}"));
+      if(mockAllRequest) {
+        handler.reject(DioException(
+            requestOptions: options,
+            error: "Can't find route setting: ${options.path}"));
+      } else {
+        handler.next(options);
+      }
       return;
     }
 
     String method = route['method'] as String;
     if (options.method != method) {
-      handler.reject(DioException(
-          requestOptions: options,
-          error:
-              "Can't find route setting: ${options.path}:${options.method}"));
+      if(mockAllRequest) {
+        handler.reject(DioException(
+            requestOptions: options,
+            error:
+            "Can't find route setting: ${options.path}:${options.method}"));
+      } else {
+        handler.next(options);
+      }
       return;
     }
 
